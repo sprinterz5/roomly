@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Roomly</title>
+    <link rel="stylesheet" href="style.css?v=10"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css"/>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="icon" type="image/png" href="assets/img/heart.png" />
+  </head>
+  <body>
+    <div id="boot-banner" class="boot-banner">Loading Roomly...</div>
+    <div id="debug-overlay" class="debug-overlay hidden">
+      <div class="debug-title">Roomly Debug</div>
+      <pre id="debug-text"></pre>
+    </div>
+    <div class="app-container">
+
+      <!-- 1) select role -->
+      <div id="state-select-role" class="state select-role">
+        <div class="container">
+          <h1 class="title-select-role">Roomly: University Room Reservation System</h1>
+          <p class="subtitle-select-role">Select your role to continue</p>
+          <p class="role-hint">Club leaders and admins are assigned by the university.</p>
+          <div id="auth-message" class="auth-message hidden"></div>
+          <form id="select-role-form" class="role-grid">
+            <div class="role-button" data-role="student">
+              <div class="icon-wrapper student">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 9.75L12 3l9 6.75V21a.75.75 0 0 1-.75.75h-5.25V14.25H9V21.75H3.75A.75.75 0 0 1 3 21V9.75z" stroke="#4C7DFF" stroke-width="2"/>
+                </svg>
+              </div>
+              <p class="select-role-title">Student</p>
+              <p class="select-role-description">View class schedules and available rooms</p>
+            </div>
+
+            <div class="role-button" data-role="club">
+              <div class="icon-wrapper club">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 8a3 3 0 1 1 6 0M15 11a3 3 0 1 1 6 0M2 20a5 5 0 0 1 10 0M12.5 20a5 5 0 0 1 10 0" stroke="#B270FF" stroke-width="2"/>
+                </svg>
+              </div>
+              <p class="select-role-title">Club</p>
+              <p class="select-role-description">Reserve rooms and manage activities</p>
+            </div>
+
+            <div class="role-button" data-role="administration">
+              <div class="icon-wrapper admin">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3l8 4v6c0 5-4 8-8 8s-8-3-8-8V7l8-4z" stroke="#3ED584" stroke-width="2"/>
+                </svg>
+              </div>
+              <p class="select-role-title">Administration</p>
+              <p class="select-role-description">Monitor and manage all reservations</p>
+            </div>
+          </form>
+        </div> 
+      </div>
+
+      <!-- 2) student portal -->
+      <div id="state-student-portal" class="portal hidden" data-portal="student">
+        <div class="app-header">
+          <div class="app-header-inner">
+            <div class="app-header-left">
+              <div class="app-header-icon">
+                <img src="assets/img/university.png" alt="university"/>
+              </div>
+              <div>
+                <p class="app-header-title">Student Portal</p>
+                <p class="app-header-description">Roomly: Room Reservation System</p>
+              </div>
+            </div>
+            <div class="app-header-actions">
+              <span class="role-pill" data-role-label>Role: student</span>
+              <button class="switch-role-btn">Switch Role</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="container">
+          <div class="app-main">
+            <h2 class="portal-title">Student Portal</h2>
+            <p class="portal-description">View class schedules and find available rooms</p>
+            
+            <div class="student-tabs">
+              <button class="tab active">Schedule</button>
+              <button class="tab">Available Rooms</button>
+            </div>
+
+            <div id="tab-schedule" class="tab-content">
+              <div class="panel-grid">
+                <section class="panel-card">
+                  <h3 class="panel-title">My calendar</h3>
+                  <p class="panel-subtitle">Classes and events assigned to you</p>
+                  <div class="calendar-wrapper">
+                    <div id="calendar-student" class="calendar"></div>
+                  </div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Upcoming</h3>
+                  <p class="panel-subtitle">Next 30 days</p>
+                  <div id="student-upcoming" class="event-list"></div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">My clubs</h3>
+                  <p class="panel-subtitle">Clubs you belong to</p>
+                  <div id="student-clubs" class="club-list"></div>
+                  <div id="student-club-status" class="form-status"></div>
+                </section>
+              </div>
+
+              <section class="panel-card">
+                <h3 class="panel-title">Class schedule</h3>
+                <div class="search-wrapper">
+                  <span class="search-icon">
+                    <img src="assets/img/search.png" alt="search" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search classes, professors, or rooms..."/>
+                </div>
+                <div class="class-cards">
+                  <article class="class-card">
+                    <header class="card-header">
+                      <div>
+                        <div class="title">Introduction to Computer Science</div>
+                        <div class="meta-row">
+                          <span class="meta-item">
+                            <span class="basic-icon">
+                              <img src="assets/img/user.png" alt="users"/>
+                            </span>
+                            <span>Prof. Smith</span>
+                          </span>
+                          <span class="meta-item">
+                            <span class="basic-icon">
+                              <img src="assets/img/location.png" alt="location"/>
+                            </span>
+                            <span>Room A101 (Building A)</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="chip-time">
+                        09:00 - 10:30
+                      </div>
+                    </header>
+                    <div class="footer-row">
+                      <span class="meta-item">
+                        <span class="basic-icon">
+                          <img src="assets/img/user.png" alt="users"/>
+                        </span>
+                        <span>28 / 30 students</span>
+                      </span>
+                      <span class="muted">Type: lecture</span>
+                      <span class="muted">
+                        <span class="basic-icon">
+                          <img src="assets/img/screen.png" alt="users"/>
+                        </span> 
+                        Equipment: Projector, Whiteboard
+                      </span>
+                    </div>
+                  </article>
+                  <article class="class-card">
+                    <header class="card-header">
+                      <div>
+                        <div class="title">Advanced Mathematics</div>
+                        <div class="meta-row">
+                          <span class="meta-item">
+                            <span class="basic-icon">
+                              <img src="assets/img/user.png" alt="users"/>
+                            </span>
+                            <span>Prof. Smith</span>
+                          </span>
+                          <span class="meta-item">
+                            <span class="basic-icon">
+                              <img src="assets/img/location.png" alt="location"/>
+                            </span>
+                            <span>Room A102 (Building A)</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="chip-time">
+                        10:00 - 11:30
+                      </div>
+                    </header>
+                    <div class="footer-row">
+                      <span class="meta-item">
+                        <span class="basic-icon">
+                          <img src="assets/img/user.png" alt="users"/>
+                        </span>
+                        <span>45 / 50 students</span>
+                      </span>
+                      <span class="muted">Type: lecture</span>
+                      <span class="muted">
+                        <span class="basic-icon">
+                          <img src="assets/img/screen.png" alt="users"/>
+                        </span> 
+                      Equipment: Projector, Sound System, Whiteboard</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+            <div id="tab-rooms" class="tab-content hidden">
+              <article class="rooms-header-card">
+                <h3 class="rooms-title">Currently Available Rooms</h3>
+                <p class="rooms-subtitle">Showing rooms that are free right now</p>
+                <div class="rooms-time">
+                  <span>Available rooms</span>
+                  <span data-rooms-time>As of --:--</span>
+                </div>
+              </article>
+              <div id="student-rooms-grid" class="rooms-grid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3) club portal -->
+      <div id="state-club-portal" class="portal hidden" data-portal="club">
+        <div class="app-header">
+          <div class="app-header-inner">
+            <div class="app-header-left">
+              <div class="app-header-icon">
+                <img src="assets/img/group.png" alt="users" class="img-group"/>
+              </div>
+              <div>
+                <p class="app-header-title">Club Portal</p>
+                <p class="app-header-description">Roomly: Room Reservation System</p>
+              </div>
+            </div>
+            <div class="app-header-actions">
+              <span class="role-pill" data-role-label>Role: club leader</span>
+              <button class="switch-role-btn">Switch Role</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="container">
+          <div class="app-main">
+            <div class="club-portal-top">
+              <div class="club-portal-text">
+                <h2 class="portal-title">Club Portal</h2>
+                <p class="portal-description">Manage your club's room reservations</p>
+              </div>
+              <div class="app-header-controls">
+                <div class="club-dropdown">
+                  <button class="dropdown-toggle" data-club-id="1">
+                    Debate Club
+                    <span class="chevron">v</span>
+                  </button>
+                  <ul class="dropdown-menu hidden">
+                    <li data-club-id="1">Debate Club</li>
+                    <li data-club-id="2">Chess Club</li>
+                    <li data-club-id="3">Drama Club</li>
+                    <li data-club-id="4">Photography Club</li>
+                    <li data-club-id="5">Robotics Club</li>
+                    <li data-club-id="6">Environmental Club</li>
+                    <li data-club-id="7">Music Club</li>
+                    <li data-club-id="8">Dance Club</li>
+                  </ul>
+                </div>
+                <button class="new-reserve-room-btn" data-scroll-target="club-event-form">New Event</button>
+              </div>
+            </div>
+            <div class="student-tabs">
+              <button class="tab active">Calendar</button>
+              <button class="tab">Requests</button>
+              <button class="tab">Rooms</button>
+              <button class="tab">Members</button>
+            </div>
+
+          <div id="tab-club-calendar" class="tab-content">
+            <div class="panel-grid">
+              <section class="panel-card">
+                <h3 class="panel-title">Club calendar</h3>
+                <p class="panel-subtitle">All activities for your club(s)</p>
+                <div class="calendar-wrapper">
+                  <div id="calendar-club" class="calendar"></div>
+                </div>
+              </section>
+
+              <section class="panel-card">
+                <h3 class="panel-title">Create new event</h3>
+                <p class="panel-subtitle">Events are submitted for approval</p>
+                <form id="club-event-form" class="form-stack">
+                  <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" placeholder="e.g., Debate practice" required />
+                  </div>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Date</label>
+                      <input type="date" name="date" required />
+                    </div>
+                    <div class="form-group">
+                      <label>Start time</label>
+                      <input type="time" name="start_time" required />
+                    </div>
+                    <div class="form-group">
+                      <label>End time</label>
+                      <input type="time" name="end_time" required />
+                    </div>
+                    <div class="form-group">
+                      <label>Repeat</label>
+                      <select name="repeat">
+                        <option value="none">One-time</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Repeat until</label>
+                      <input type="date" name="repeat_until" />
+                    </div>
+                    <div class="form-group">
+                      <label>Room code</label>
+                      <input type="text" name="room_code" placeholder="A101 (optional)" />
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" rows="3" placeholder="Add details"></textarea>
+                  </div>
+                  <div class="form-status" id="club-form-status"></div>
+                  <button class="btn-primary" type="submit">Submit for approval</button>
+                </form>
+              </section>
+
+            </div>
+          </div>
+
+          <div id="tab-club-requests" class="tab-content hidden">
+            <section class="panel-card">
+              <h3 class="panel-title">My requests</h3>
+              <p class="panel-subtitle">Pending and approved events</p>
+              <div id="club-requests-list" class="event-list"></div>
+            </section>
+          </div>
+
+          <div id="tab-club-rooms" class="tab-content hidden">
+            <article class="rooms-header-card">
+              <h3 class="rooms-title">Available Rooms</h3>
+              <p class="rooms-subtitle">Find and reserve rooms for your club activities</p>
+              <div class="rooms-time">
+                <span>Available rooms</span>
+                <span data-rooms-time>As of --:--</span>
+              </div>
+            </article>
+            <div id="club-rooms-grid" class="rooms-grid"></div>
+          </div>
+
+          <div id="tab-club-members" class="tab-content hidden">
+            <section class="panel-card">
+              <h3 class="panel-title">Add club member</h3>
+              <p class="panel-subtitle">Invite by email to your selected club</p>
+              <form id="club-member-form" class="form-stack">
+                <div class="form-group">
+                  <label>Student email</label>
+                  <input type="email" name="member_email" placeholder="name@domain.com" required />
+                </div>
+                <div class="form-status" id="club-member-status"></div>
+                <button class="btn-primary" type="submit">Add member</button>
+              </form>
+            </section>
+
+            <section class="panel-card">
+              <h3 class="panel-title">Club members</h3>
+              <p class="panel-subtitle">Members for the selected club</p>
+              <div id="club-members-list" class="member-list"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- 4) administration portal -->
+      <div class="portal hidden" data-portal="administration">
+        <div class="app-header">
+          <div class="app-header-inner">
+            <div class="app-header-left">
+              <div class="app-header-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3l8 4v6c0 5-4 8-8 8s-8-3-8-8V7l8-4z" stroke="#3ED584" stroke-width="2"/>
+                </svg>
+              </div>
+              <div>
+                <p class="app-header-title">Administration Portal</p>
+                <p class="app-header-description">Roomly: Room Reservation System</p>
+              </div>
+            </div>
+            <div class="app-header-actions">
+              <span class="role-pill" data-role-label>Role: admin</span>
+              <button class="switch-role-btn">Switch Role</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="container">
+          <div class="app-main">
+            <h2 class="portal-title">Administration</h2>
+            <p class="portal-description">Review requests, manage roles, and monitor everything</p>
+
+            <div class="student-tabs">
+              <button class="tab active">Calendar</button>
+              <button class="tab">Approvals</button>
+              <button class="tab">Roles & Clubs</button>
+              <button class="tab">Data</button>
+            </div>
+
+            <div id="tab-admin-calendar" class="tab-content">
+              <div class="panel-grid">
+                <section class="panel-card">
+                  <h3 class="panel-title">All events</h3>
+                  <p class="panel-subtitle">Full campus calendar</p>
+                  <div class="calendar-wrapper">
+                    <div id="calendar-admin" class="calendar"></div>
+                  </div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Create lesson or event</h3>
+                  <p class="panel-subtitle">Lessons can be recurring, events can be one-time</p>
+                  <form id="admin-event-form" class="form-stack">
+                    <div class="form-group">
+                      <label>Title</label>
+                      <input type="text" name="title" placeholder="e.g., Physics 101" required />
+                    </div>
+                    <div class="form-group">
+                      <label>Type</label>
+                      <select name="event_type" required>
+                        <option value="lesson">lesson</option>
+                        <option value="event">event</option>
+                      </select>
+                    </div>
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="date" required />
+                      </div>
+                      <div class="form-group">
+                        <label>Start time</label>
+                        <input type="time" name="start_time" required />
+                      </div>
+                      <div class="form-group">
+                        <label>End time</label>
+                        <input type="time" name="end_time" required />
+                      </div>
+                      <div class="form-group">
+                        <label>Repeat</label>
+                        <select name="repeat">
+                          <option value="none">One-time</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label>Repeat until</label>
+                        <input type="date" name="repeat_until" />
+                      </div>
+                      <div class="form-group">
+                        <label>Room code</label>
+                        <input type="text" name="room_code" placeholder="A101 (optional)" />
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label>Participant IDs (comma-separated)</label>
+                      <input type="text" name="participant_ids" placeholder="Optional" />
+                    </div>
+                    <div class="form-group">
+                      <label>Description</label>
+                      <textarea name="description" rows="3" placeholder="Add details"></textarea>
+                    </div>
+                    <div class="form-status" id="admin-event-status"></div>
+                    <button class="btn-primary" type="submit">Create</button>
+                  </form>
+                </section>
+              </div>
+            </div>
+
+            <div id="tab-admin-approvals" class="tab-content hidden">
+              <section class="panel-card">
+                <h3 class="panel-title">Pending approvals</h3>
+                <p class="panel-subtitle">Approve or reject club requests</p>
+                <div id="admin-approvals-list" class="event-list"></div>
+              </section>
+            </div>
+
+            <div id="tab-admin-roles" class="tab-content hidden">
+              <div class="panel-grid">
+                <section class="panel-card">
+                  <h3 class="panel-title">Assign role</h3>
+                  <p class="panel-subtitle">Promote users by email</p>
+                  <form id="admin-role-form" class="form-stack">
+                    <div class="form-group">
+                      <label>User email</label>
+                      <input type="email" name="user_email" placeholder="name@domain.com" required />
+                    </div>
+                    <div class="form-group">
+                      <label>Role</label>
+                      <select name="role" required>
+                        <option value="student">student</option>
+                        <option value="club_leader">club_leader</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    </div>
+                    <div class="form-status" id="admin-role-status"></div>
+                    <button class="btn-primary" type="submit">Assign role</button>
+                  </form>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Create club</h3>
+                  <p class="panel-subtitle">Add new club to the system</p>
+                  <form id="admin-club-form" class="form-stack">
+                    <div class="form-group">
+                      <label>Club name</label>
+                      <input type="text" name="name" required />
+                    </div>
+                    <div class="form-group">
+                      <label>Owner email (optional)</label>
+                      <input type="email" name="owner_email" placeholder="name@domain.com" />
+                    </div>
+                    <div class="form-status" id="admin-club-status"></div>
+                    <button class="btn-primary" type="submit">Create club</button>
+                  </form>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Assign club leader</h3>
+                  <p class="panel-subtitle">Bind leader by club name</p>
+                  <form id="admin-leader-form" class="form-stack">
+                    <div class="form-group">
+                      <label>Club name</label>
+                      <input type="text" name="club_name" required />
+                    </div>
+                    <div class="form-group">
+                      <label>User email</label>
+                      <input type="email" name="user_email" placeholder="name@domain.com" required />
+                    </div>
+                    <div class="form-status" id="admin-leader-status"></div>
+                    <button class="btn-primary" type="submit">Assign leader</button>
+                  </form>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Rooms</h3>
+                  <p class="panel-subtitle">Add or update rooms by room code</p>
+                  <form id="admin-room-form" class="form-stack">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label>Room code</label>
+                        <input type="text" name="code" placeholder="A101" required />
+                      </div>
+                      <div class="form-group">
+                        <label>Building</label>
+                        <input type="text" name="building" placeholder="Building A" />
+                      </div>
+                      <div class="form-group">
+                        <label>Floor</label>
+                        <input type="text" name="floor" placeholder="1st Floor" />
+                      </div>
+                      <div class="form-group">
+                        <label>Type</label>
+                        <input type="text" name="room_type" placeholder="Lecture" />
+                      </div>
+                      <div class="form-group">
+                        <label>Capacity</label>
+                        <input type="number" name="capacity" placeholder="30" />
+                      </div>
+                      <div class="form-group">
+                        <label>Active</label>
+                        <select name="is_active">
+                          <option value="true" selected>Active</option>
+                          <option value="false">Inactive</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-status" id="admin-room-status"></div>
+                    <button class="btn-primary" type="submit">Save room</button>
+                  </form>
+                  <div id="admin-rooms-list" class="room-list"></div>
+                </section>
+              </div>
+            </div>
+
+            <div id="tab-admin-data" class="tab-content hidden">
+              <div class="panel-grid">
+                <section class="panel-card">
+                  <h3 class="panel-title">Users</h3>
+                  <p class="panel-subtitle">All registered users</p>
+                  <div id="admin-users-list" class="data-list"></div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Clubs</h3>
+                  <p class="panel-subtitle">All clubs</p>
+                  <div id="admin-clubs-list" class="data-list"></div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Club members</h3>
+                  <p class="panel-subtitle">Memberships across clubs</p>
+                  <div id="admin-club-members-list" class="data-list"></div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Events</h3>
+                  <p class="panel-subtitle">All calendar events</p>
+                  <div id="admin-events-list" class="data-list"></div>
+                </section>
+
+                <section class="panel-card">
+                  <h3 class="panel-title">Event participants</h3>
+                  <p class="panel-subtitle">Student links to events</p>
+                  <div id="admin-event-participants-list" class="data-list"></div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rrule@2.7.2/dist/es5/rrule.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/rrule@6.1.11/index.global.min.js"></script>
+    <script src="script.js?v=10"></script>
+    </body>
+</html>
